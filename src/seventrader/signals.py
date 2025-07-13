@@ -8,6 +8,8 @@ import pandas as pd
 import pandas_ta as ta
 from scipy import stats
 
+import joblib
+
 from .config import Config
 from .data import DatabaseManager
 from .models.models import SimpleMLModel
@@ -242,7 +244,21 @@ class AdvancedSignalGenerator:
         self.config = config
         self.ta = AdvancedTechnicalAnalysis(config)
         self.db = DatabaseManager()
-        self.model = SimpleMLModel()
+        self.model = self._load_model()
+    
+    def _load_model(self):
+        """Load the pre-trained model from disk."""
+        try:
+            model_path = "trained_model.joblib"
+            if os.path.exists(model_path):
+                logging.info(f"Loading pre-trained model from {model_path}")
+                return joblib.load(model_path)
+            else:
+                logging.warning("No pre-trained model found. ML signals will be disabled.")
+                return None
+        except Exception as e:
+            logging.error(f"Error loading model: {e}")
+            return None
     
     def _calculate_trade_parameters(self, current_price: float, signal_type: str, atr: float) -> Dict:
         """Calculate entry, stop-loss, and take-profit levels."""
@@ -279,20 +295,18 @@ class AdvancedSignalGenerator:
             if features.empty:
                 return None
 
-            # Train the model if it hasn't been trained yet
-            # In a real application, you would train the model on a large historical dataset
-            if not hasattr(self.model, 'is_trained') or not self.model.is_trained:
-                self._train_model_on_historic_data(df)
-
             # Get prediction from the model
-            prediction = self.model.predict(features)
-            if prediction is None:
-                logging.warning(f"Could not get a prediction for {symbol}. Using rule-based fallback.")
-                # Fallback to a simplified rule-based signal strength
-                signal_strength = self._calculate_weighted_signal_strength(self._calculate_signal_components(indicators))
+            if self.model and hasattr(self.model, 'is_trained') and self.model.is_trained:
+                prediction = self.model.predict(features)
+                if prediction is None:
+                    logging.warning(f"Could not get a prediction for {symbol}. Using rule-based fallback.")
+                    signal_strength = self._calculate_weighted_signal_strength(self._calculate_signal_components(indicators))
+                else:
+                    # Convert prediction to signal strength (-1 to 1)
+                    signal_strength = (prediction * 2) - 1  # Scale from [0, 1] to [-1, 1]
             else:
-                # Convert prediction to signal strength (-1 to 1)
-                signal_strength = (prediction * 2) - 1  # Scale from [0, 1] to [-1, 1]
+                # Fallback to rule-based if model is not available
+                signal_strength = self._calculate_weighted_signal_strength(self._calculate_signal_components(indicators))
 
             confidence = self._calculate_signal_confidence(indicators, {})
             
