@@ -184,13 +184,18 @@ class EnhancedMarketDataManager:
             logging.error(f"Failed to initialize exchange: {e}")
             raise
     
-    def fetch_ohlcv_with_indicators(self, symbol: str, timeframe: str, limit: int = None) -> pd.DataFrame:
+    def fetch_ohlcv_with_indicators(self, symbol: str, timeframe: str, limit: int = None, since: int = None, until: int = None) -> pd.DataFrame:
         """Fetch OHLCV data and add basic indicators"""
         try:
             if limit is None:
                 limit = self.config.LOOKBACK_PERIODS
             
-            ohlcv = self.exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
+            if since and until:
+                ohlcv = self.exchange.fetch_ohlcv(symbol, timeframe, since=since, params={'until': until})
+            elif since:
+                ohlcv = self.exchange.fetch_ohlcv(symbol, timeframe, since=since)
+            else:
+                ohlcv = self.exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
             
             if not ohlcv:
                 logging.warning(f"No data received for {symbol} {timeframe}")
@@ -215,7 +220,7 @@ class EnhancedMarketDataManager:
         """Maintain compatibility with existing code"""
         return self.fetch_ohlcv_with_indicators(symbol, timeframe, limit)
     
-    def collect_all_data_parallel(self):
+    def collect_all_data_parallel(self, since: int = None, until: int = None):
         """Collect data for all symbols in parallel"""
         logging.info("Starting parallel data collection...")
         
@@ -224,7 +229,7 @@ class EnhancedMarketDataManager:
             
             for symbol in self.config.SYMBOLS:
                 for timeframe in self.config.TIMEFRAMES:
-                    future = executor.submit(self._collect_single_data, symbol, timeframe)
+                    future = executor.submit(self._collect_single_data, symbol, timeframe, since, until)
                     futures.append(future)
             
             # Wait for all futures to complete
@@ -239,10 +244,10 @@ class EnhancedMarketDataManager:
         
         logging.info("Parallel data collection completed")
     
-    def _collect_single_data(self, symbol: str, timeframe: str) -> Optional[Tuple[str, str, pd.DataFrame]]:
+    def _collect_single_data(self, symbol: str, timeframe: str, since: int = None, until: int = None) -> Optional[Tuple[str, str, pd.DataFrame]]:
         """Collect data for a single symbol/timeframe pair"""
         try:
-            df = self.fetch_ohlcv_with_indicators(symbol, timeframe)
+            df = self.fetch_ohlcv_with_indicators(symbol, timeframe, since=since, until=until)
             if not df.empty:
                 return symbol, timeframe, df
             return None

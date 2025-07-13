@@ -5,7 +5,7 @@ import joblib
 import pandas as pd
 
 # Add the project root to the Python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 from seventrader.config import Config
 from seventrader.data import DatabaseManager
@@ -61,8 +61,8 @@ def run():
     # --- Training Parameters ---
     symbol = "BTC/USDT"
     timeframe = "1h"
-    start_date = "2023-01-01"
-    end_date = "2023-12-31"
+    start_date = "2023-01-01 00:00:00"
+    end_date = "2023-12-31 23:59:59"
     model_filename = "trained_model.joblib"
     # ---------------------------
 
