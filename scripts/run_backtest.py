@@ -18,7 +18,7 @@ def run():
     # --- Backtest Parameters ---
     symbol = "BTC/USDT"
     start_date = "2023-01-01"
-    end_date = "2023-12-31"
+    end_date = "2025-12-31"
     fee_rate = 0.001  # 0.1% trading fee
     slippage_pct = 0.0005 # 0.05% slippage
     # ---------------------------

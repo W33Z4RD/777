@@ -58,30 +58,38 @@ def run():
     ta_engine = AdvancedTechnicalAnalysis(config)
     model = SimpleMLModel()
 
-    # --- Training Parameters ---
-    symbol = "BTC/USDT"
     timeframe = "1h"
     start_date = "2023-01-01 00:00:00"
-    end_date = "2023-12-31 23:59:59"
+    end_date = "2025-12-31 23:59:59"
     model_filename = "trained_model.joblib"
-    # ---------------------------
 
-    print(f"Loading data for {symbol} from {start_date} to {end_date}...")
-    df = db_manager.load_market_data_for_backtest(symbol, timeframe, start_date, end_date)
+    all_features = []
+    all_labels = []
 
-    if df.empty:
-        print(f"No data found for {symbol}. Please run data collection first.")
+    for symbol in config.SYMBOLS:
+        print(f"Loading data for {symbol}...")
+        df = db_manager.load_market_data_for_backtest(symbol, timeframe, start_date, end_date)
+
+        if df.empty:
+            print(f"No data found for {symbol}. Skipping.")
+            continue
+
+        print(f"Preparing features and labels for {symbol}...")
+        X, y = prepare_features_and_labels(config, ta_engine, df)
+
+        if not X.empty:
+            all_features.append(X)
+            all_labels.append(y)
+
+    if not all_features:
+        print("Could not generate features for any symbol. Exiting.")
         return
 
-    print("Preparing features and labels for the model...")
-    X, y = prepare_features_and_labels(config, ta_engine, df)
+    X_combined = pd.concat(all_features, ignore_index=True)
+    y_combined = pd.concat(all_labels, ignore_index=True)
 
-    if X.empty:
-        print("Could not generate features for model training. Exiting.")
-        return
-
-    print(f"Training model on {len(X)} samples...")
-    model.train(X, y)
+    print(f"Training model on {len(X_combined)} samples from {len(all_features)} symbols...")
+    model.train(X_combined, y_combined)
 
     print(f"Saving trained model to {model_filename}...")
     joblib.dump(model, model_filename)

@@ -24,7 +24,7 @@ def run():
     symbol = "BTC/USDT"
     timeframe = "1h"
     start_date_str = "2023-01-01 00:00:00"
-    end_date_str = "2023-12-31 23:59:59"
+    end_date_str = "2025-12-31 23:59:59"
     # ----------------------------------
 
     # Convert string dates to milliseconds timestamp
