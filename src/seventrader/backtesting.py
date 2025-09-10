@@ -153,9 +153,9 @@ class SimulatedPortfolio:
 
 
 class Backtester:
-    def __init__(self, config: Config, fee_rate: float = 0.001, slippage_pct: float = 0.0005):
+    def __init__(self, config: Config, data_manager, fee_rate: float = 0.001, slippage_pct: float = 0.0005):
         self.config = config
-        self.db = DatabaseManager()
+        self.data_manager = data_manager
         self.signal_generator = AdvancedSignalGenerator(config)
         self.portfolio = SimulatedPortfolio(initial_cash=10000.0, fee_rate=fee_rate, slippage_pct=slippage_pct)
 
@@ -163,7 +163,7 @@ class Backtester:
         logging.info(f"Starting backtest for {symbol} from {start_date} to {end_date}...")
 
         # Load data
-        df = self.db.load_market_data_for_backtest(symbol, self.config.PRIMARY_TIMEFRAME, start_date, end_date)
+        df = self.data_manager.fetch_ohlcv(symbol, self.config.PRIMARY_TIMEFRAME, start_date, end_date)
         if df.empty:
             logging.error(f"No data found for {symbol} in the given date range.")
             return

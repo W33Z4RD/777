@@ -297,19 +297,21 @@ class AdvancedSignalGenerator:
                 return None
 
             # Get prediction from the model
+            components = self._calculate_signal_components(indicators)
             if self.model and hasattr(self.model, 'is_trained') and self.model.is_trained:
                 prediction = self.model.predict(features)
                 if prediction is None:
                     logging.warning(f"Could not get a prediction for {symbol}. Using rule-based fallback.")
-                    signal_strength = self._calculate_weighted_signal_strength(self._calculate_signal_components(indicators))
+                    signal_strength = self._calculate_weighted_signal_strength(components)
                 else:
                     # Convert prediction to signal strength (-1 to 1)
                     signal_strength = (prediction * 2) - 1  # Scale from [0, 1] to [-1, 1]
             else:
                 # Fallback to rule-based if model is not available
-                signal_strength = self._calculate_weighted_signal_strength(self._calculate_signal_components(indicators))
+                signal_strength = self._calculate_weighted_signal_strength(components)
 
-            confidence = self._calculate_signal_confidence(indicators, {})
+            confidence = self._calculate_signal_confidence(indicators, components)
+            print(f"DEBUG: Signal Strength: {signal_strength:.2f}, Confidence: {confidence:.2f}")
             
             logging.info(f"[{symbol}] ML Signal Strength: {signal_strength:.2f}, Confidence: {confidence:.2f}")
 
@@ -317,7 +319,7 @@ class AdvancedSignalGenerator:
             signal_type = self._determine_signal_type(signal_strength, confidence, indicators)
             
             # Generate detailed reasoning
-            reasoning = self._generate_signal_reasoning({}, indicators)
+            reasoning = self._generate_signal_reasoning(components, indicators)
             
             # Calculate trade parameters if it's a trading signal
             trade_params = {}
@@ -479,6 +481,7 @@ class AdvancedSignalGenerator:
         return components
     
     def _calculate_weighted_signal_strength(self, components: Dict) -> float:
+        print(f"DEBUG: Components: {components}")
         """Calculate weighted signal strength"""
         weights = {
             'trend': 0.35,
@@ -498,6 +501,7 @@ class AdvancedSignalGenerator:
         adx_multiplier = components.get('adx_filter', 0.5)
         # This new formula boosts the signal in non-trending markets
         weighted_strength *= (0.6 + 0.4 * adx_multiplier)
+        print(f"DEBUG: Weighted Strength before final clamp: {weighted_strength:.2f}")
         
         return max(min(weighted_strength, 1.0), -1.0)
     

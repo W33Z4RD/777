@@ -20,10 +20,10 @@ def run():
     # Initialize the data manager
     data_manager = EnhancedMarketDataManager(config)
 
-    # --- Data Collection Parameters ---
-    symbol = "BTC/USDT"
-    timeframe = "1h"
-    start_date_str = "2023-01-01 00:00:00"
+    # --- Data Collection Parameters --- 
+    ##  symbol = "BTC/USDT" symbol and time frame are being pulled from seventrader config.py
+    ##timeframe = "1h"
+    start_date_str = "2010-01-01 00:00:00"
     end_date_str = "2025-12-31 23:59:59"
     # ----------------------------------
 
