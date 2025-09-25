@@ -16,7 +16,6 @@ def run():
     config = Config()
 
     # --- Backtest Parameters ---
-    symbol = "BTC/USDT"
     start_date = "2023-01-01"
     end_date = "2025-12-31"
     fee_rate = 0.001  # 0.1% trading fee
@@ -26,8 +25,10 @@ def run():
     # Initialize the backtester with fees and slippage
     backtester = Backtester(config, fee_rate=fee_rate, slippage_pct=slippage_pct)
 
-    # Run the backtest
-    backtester.run(start_date, end_date, symbol)
+    # Run the backtest for all symbols in the config
+    for symbol in config.SYMBOLS:
+        print(f"--- Running backtest for {symbol} ---")
+        backtester.run(start_date, end_date, symbol)
 
     print("✅ Backtest complete.")
 

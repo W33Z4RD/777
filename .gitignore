@@ -106,3 +106,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Database and Model Files
+*.db
+*.joblib
+*.json.env.save
+.env.save

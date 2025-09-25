@@ -27,10 +27,9 @@ logging.basicConfig(
 @dataclass
 class Config:
     # Exchange Configuration
-    EXCHANGE_NAME: str = os.getenv("EXCHANGE_NAME", "binance")
-    API_KEY: str = os.getenv("EXCHANGE_API_KEY", "")
-    API_SECRET: str = os.getenv("EXCHANGE_API_SECRET", "")
-    PASSPHRASE: str = os.getenv("EXCHANGE_PASSPHRASE", "")
+    EXCHANGE_NAME: str = os.getenv("EXCHANGE_NAME", "coinbase")
+    API_KEY: str = os.getenv("COINBASE_API_KEY", "")
+    API_SECRET: str = os.getenv("COINBASE_API_SECRET", "")
     SANDBOX: bool = os.getenv("EXCHANGE_SANDBOX", "false").lower() == "true"
     
     # Expanded Trading Universe
@@ -68,7 +67,7 @@ class Config:
     # Multi-timeframe analysis
     TIMEFRAMES: List[str] = field(default_factory=lambda: json.loads(os.getenv("TIMEFRAMES", '["15m", "1h", "4h", "1d", "1w"]')))
     PRIMARY_TIMEFRAME: str = "1h"
-    CONFIRMATION_TIMEFRAMES: List[str] = field(default_factory=lambda: ["4h", "1d"])
+    
     
     LOOKBACK_PERIODS: int = int(os.getenv("LOOKBACK_PERIODS", "500"))
     UPDATE_INTERVAL: int = int(os.getenv("UPDATE_INTERVAL", "180"))
@@ -107,7 +106,7 @@ class Config:
     # Risk Management
     STOP_LOSS_ATR_MULTIPLIER: float = float(os.getenv("STOP_LOSS_ATR_MULTIPLIER", "2.5"))
     TAKE_PROFIT_ATR_MULTIPLIER: float = float(os.getenv("TAKE_PROFIT_ATR_MULTIPLIER", "5.0"))
-    POSITION_SIZE_PCT: float = float(os.getenv("POSITION_SIZE_PCT", "0.02"))
+    POSITION_SIZE_PCT: float = float(os.getenv("POSITION_SIZE_PCT", "0.5"))
     
     # Threading
     MAX_WORKERS: int = int(os.getenv("MAX_WORKERS", "8"))
