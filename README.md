@@ -24,11 +24,11 @@ The 777PROJECT is an advanced, modular, and highly configurable cryptocurrency t
 
 1.  **Clone the repository:**
     ```bash
-    git clone <your-repo-url>
+    git clone https://github.com/W33Z4RD/777
     cd 777PROJECT
     ```
 
-2.  **Create a Python virtual environment (recommended):**
+2.  **Create a Python virtual environment (Best pratice):**
     ```bash
     python3 -m venv venv
     source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
