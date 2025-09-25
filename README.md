@@ -1,10 +1,10 @@
 # 777 -  Crypto Trading Bot
 
 ## Project Overview
-The 777PROJECT is an advanced, modular, and highly configurable cryptocurrency trading bot. It leverages machine learning, comprehensive technical analysis, and multi-timeframe strategies to identify trading opportunities. The bot is capable of running in live trading mode with Coinbase, performing in-depth backtesting, and sending real-time notifications via Telegram.
+The 777 Crypto Bot is an advanced, modular, and highly configurable cryptocurrency trading bot. It leverages machine learning, comprehensive technical analysis, and multi-timeframe strategies to identify trading opportunities. The bot is capable of running in live trading mode with Coinbase, performing in-depth backtesting, and sending real-time notifications via Telegram.
 
 ## Features
--   **Machine Learning Core**: Utilizes a suite of models (Random Forest, Gradient Boosting, XGBoost) to generate and enhance trading signals.
+-   **AI\ML Core**: Utilizes a suite of models (Random Forest, Gradient Boosting, XGBoost) combined with Tensorflow to generate and enhance trading signals.
 -   **Live Trading with Coinbase**: Integrated with the Coinbase Cloud API for executing live trades.
 -   **Multi-Timeframe Analysis**: Aggregates data from various timeframes (e.g., 15m, 1h, 4h, 1d) for more robust signals.
 -   **Advanced Technical Analysis**: Employs a wide range of indicators from `pandas-ta`, including RSI, MACD, Bollinger Bands, EMAs, and more.
@@ -25,7 +25,7 @@ The 777PROJECT is an advanced, modular, and highly configurable cryptocurrency t
 1.  **Clone the repository:**
     ```bash
     git clone https://github.com/W33Z4RD/777
-    cd 777PROJECT
+    cd 777
     ```
 
 2.  **Create a Python virtual environment (Best pratice):**
