@@ -123,7 +123,7 @@ class MLSignalPredictor:
             self.scalers[model_name] = StandardScaler()
     
     def prepare_training_data(self, symbol_data: Dict[str, pd.DataFrame]) -> Tuple[pd.DataFrame, pd.Series]:
-        """Prepare training data from multiple symbols"""
+        """Prepare training data from multiple symbols with balanced labels."""
         all_features = []
         all_labels = []
         
@@ -136,13 +136,20 @@ class MLSignalPredictor:
             if features_df.empty:
                 continue
             
-            # Create labels (future returns)
-            future_returns = df['close'].shift(-5).pct_change()  # 5 periods ahead
-            labels = (future_returns > 0.02).astype(int)  # 1 if return > 2%
+            # Create labels (future returns) with a three-class system
+            future_returns = df['close'].pct_change(periods=5).shift(-5) # 5 periods ahead
+            threshold = 0.02  # 2% threshold for BUY/SELL
+
+            # Define labels: 0 for SELL, 1 for HOLD, 2 for BUY
+            labels = pd.cut(future_returns, 
+                            bins=[-np.inf, -threshold, threshold, np.inf], 
+                            labels=[0, 1, 2], 
+                            right=False)
             
             # Align features and labels
             aligned_data = pd.concat([features_df, labels.rename('label')], axis=1).dropna()
-            
+            aligned_data['label'] = aligned_data['label'].astype(int)
+
             if len(aligned_data) > 50:
                 all_features.append(aligned_data.drop('label', axis=1))
                 all_labels.append(aligned_data['label'])
@@ -152,6 +159,8 @@ class MLSignalPredictor:
         
         combined_features = pd.concat(all_features, ignore_index=True)
         combined_labels = pd.concat(all_labels, ignore_index=True)
+        
+        logging.info(f"Label distribution: \n{combined_labels.value_counts(normalize=True)}")
         
         return combined_features, combined_labels
     
@@ -188,43 +197,50 @@ class MLSignalPredictor:
         self.is_trained = True
     
     def predict(self, df: pd.DataFrame) -> Dict[str, float]:
-        """Generate predictions from all models"""
+        """Generate predictions from all models for a three-class output."""
         if not self.is_trained:
-            return {'prediction': 0.5, 'confidence': 0.0}
+            return {'prediction': 0.0, 'confidence': 0.0}
         
         # Create features
         features_df = self.feature_engine.create_features(df)
         if features_df.empty:
-            return {'prediction': 0.5, 'confidence': 0.0}
+            return {'prediction': 0.0, 'confidence': 0.0}
         
         # Get latest features
         latest_features = features_df.iloc[-1:].values
         
-        predictions = []
+        # Store probability arrays from each model
+        all_probas = []
         
         for model_name, model in self.models.items():
             try:
                 # Scale features
                 features_scaled = self.scalers[model_name].transform(latest_features)
                 
-                # Get prediction probability
-                pred_proba = model.predict_proba(features_scaled)[0, 1]
-                predictions.append(pred_proba)
+                # Get prediction probability for all classes [P(SELL), P(HOLD), P(BUY)]
+                pred_proba = model.predict_proba(features_scaled)[0]
+                all_probas.append(pred_proba)
                 
             except Exception as e:
                 logging.error(f"Error predicting with {model_name}: {e}")
         
-        if not predictions:
-            return {'prediction': 0.5, 'confidence': 0.0}
+        if not all_probas:
+            return {'prediction': 0.0, 'confidence': 0.0}
         
-        # Ensemble prediction
-        ensemble_pred = np.mean(predictions)
-        confidence = 1.0 - np.std(predictions)  # Lower std = higher confidence
+        # Ensemble prediction by averaging probabilities for each class
+        avg_probas = np.mean(all_probas, axis=0)
+        
+        # Calculate signal strength: P(BUY) - P(SELL)
+        # This gives a value between -1 (certain sell) and 1 (certain buy)
+        signal_strength = avg_probas[2] - avg_probas[0]
+        
+        # Confidence is the probability of the most likely class
+        confidence = np.max(avg_probas)
         
         return {
-            'prediction': ensemble_pred,
+            'prediction': signal_strength,
             'confidence': confidence,
-            'individual_predictions': dict(zip(self.models.keys(), predictions))
+            'individual_predictions': dict(zip(self.models.keys(), all_probas))
         }
     
     def save_models(self, filepath: str):
@@ -250,25 +266,22 @@ class MLSignalPredictor:
 
 # Integration with existing system
 def integrate_ml_signals(existing_signal: Dict, df: pd.DataFrame, ml_predictor: MLSignalPredictor) -> Dict:
-    """Integrate ML predictions with existing TA signals"""
+    """Integrate ML predictions with existing TA signals."""
     
     # Get ML prediction
     ml_result = ml_predictor.predict(df)
     
     # Combine signals
     ta_strength = existing_signal.get('strength', 0)
-    ml_prediction = ml_result.get('prediction', 0.5)
+    ml_strength = ml_result.get('prediction', 0.0)  # This is now the direct strength score [-1, 1]
     ml_confidence = ml_result.get('confidence', 0)
     
-    # Convert ML prediction to signal strength (-1 to 1)
-    ml_strength = (ml_prediction - 0.5) * 2
-    
-    # Weighted combination
-    if ml_confidence > 0.7:
-        combined_strength = (ta_strength * 0.3) + (ml_strength * 0.7)
+    # Weighted combination based on ML confidence
+    if ml_confidence > 0.6: # Use a slightly lower threshold for confidence
+        combined_strength = (ta_strength * 0.4) + (ml_strength * 0.6)
         combined_confidence = existing_signal.get('confidence', 0) * 0.5 + ml_confidence * 0.5
     else:
-        combined_strength = (ta_strength * 0.7) + (ml_strength * 0.3)
+        combined_strength = (ta_strength * 0.8) + (ml_strength * 0.2) # Rely more on TA if ML is not confident
         combined_confidence = existing_signal.get('confidence', 0) * 0.8 + ml_confidence * 0.2
     
     # Update signal
@@ -276,20 +289,20 @@ def integrate_ml_signals(existing_signal: Dict, df: pd.DataFrame, ml_predictor: 
     enhanced_signal.update({
         'strength': combined_strength,
         'confidence': combined_confidence,
-        'ml_prediction': ml_prediction,
+        'ml_prediction': ml_strength, # Store the new strength score
         'ml_confidence': ml_confidence,
         'ml_details': ml_result.get('individual_predictions', {})
     })
     
     # Update signal type based on enhanced strength
-    if combined_confidence > 0.6:
-        if combined_strength > 0.7:
+    if combined_confidence > 0.55: # Adjusted confidence threshold for generating a signal
+        if combined_strength > 0.65:
             enhanced_signal['type'] = 'STRONG_BUY'
-        elif combined_strength > 0.3:
+        elif combined_strength > 0.25:
             enhanced_signal['type'] = 'BUY'
-        elif combined_strength < -0.7:
+        elif combined_strength < -0.65:
             enhanced_signal['type'] = 'STRONG_SELL'
-        elif combined_strength < -0.3:
+        elif combined_strength < -0.25:
             enhanced_signal['type'] = 'SELL'
         else:
             enhanced_signal['type'] = 'HOLD'

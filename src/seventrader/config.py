@@ -67,7 +67,7 @@ class Config:
     # Multi-timeframe analysis
     TIMEFRAMES: List[str] = field(default_factory=lambda: json.loads(os.getenv("TIMEFRAMES", '["15m", "1h", "4h", "1d", "1w"]')))
     PRIMARY_TIMEFRAME: str = "1h"
-    CONFIRMATION_TIMEFRAMES: List[str] = field(default_factory=lambda: ["4h", "1d"])
+    
     
     LOOKBACK_PERIODS: int = int(os.getenv("LOOKBACK_PERIODS", "500"))
     UPDATE_INTERVAL: int = int(os.getenv("UPDATE_INTERVAL", "180"))

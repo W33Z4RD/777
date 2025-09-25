@@ -164,27 +164,36 @@ class EnhancedTradingBot:
             logging.error(f"❌ Coinbase initialization failed: {e}")
     
     def train_ml_models(self, retrain: bool = False) -> bool:
-        """Train ML models using historical data"""
-        print("🤖 Training ML models...")
+        """Train ML models using all available historical data from the database."""
+        print("🤖 Training ML models on all available historical data...")
         
         try:
             # Collect training data
-            print("📥 Collecting training data...")
+            print("📥 Collecting training data from database...")
             symbol_data = {}
             
-            for symbol in self.config.SYMBOLS[:10]:  # Limit to 10 symbols for training
+            start_date = "2015-01-01"  # Fetch data from the beginning
+            end_date = datetime.now().strftime('%Y-%m-%d')
+
+            for symbol in self.config.SYMBOLS:  # Use all symbols
                 try:
-                    df = self.market_data.fetch_ohlcv(symbol, self.config.PRIMARY_TIMEFRAME, limit=1000)
+                    # Load all available data for the symbol from the database
+                    df = self.market_data.db.load_market_data_for_backtest(
+                        symbol, self.config.PRIMARY_TIMEFRAME, start_date, end_date
+                    )
+                    
                     if not df.empty and len(df) >= 500:
                         symbol_data[symbol] = df
-                        print(f"✅ {symbol}: {len(df)} data points")
-                    time.sleep(0.5)  # Rate limiting
+                        print(f"✅ {symbol}: Loaded {len(df)} data points from database.")
+                    else:
+                        print(f"⚠️ {symbol}: Not enough data in database ({len(df)} points). Skipping.")
+                    
                 except Exception as e:
-                    print(f"❌ {symbol}: {e}")
+                    print(f"❌ Error loading data for {symbol} from database: {e}")
                     continue
             
             if len(symbol_data) < 3:
-                print("❌ Insufficient data for training")
+                print("❌ Insufficient data across all symbols for training.")
                 return False
             
             # Prepare training data
@@ -192,7 +201,7 @@ class EnhancedTradingBot:
             X, y = self.ml_predictor.prepare_training_data(symbol_data)
             
             if len(X) < 100:
-                print("❌ Insufficient training samples")
+                print("❌ Insufficient training samples after feature preparation.")
                 return False
             
             # Train models

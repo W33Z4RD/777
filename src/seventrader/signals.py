@@ -13,7 +13,6 @@ import joblib
 
 from .config import Config
 from .data import DatabaseManager
-from .models.models import SimpleMLModel
 
 # Enhanced Technical Analysis Engine
 class AdvancedTechnicalAnalysis:
@@ -374,47 +373,7 @@ class AdvancedSignalGenerator:
 
         return pd.DataFrame([features])
 
-    def _train_model_on_historic_data(self, df: pd.DataFrame):
-        """Train the model on historical data by generating features and labels."""
-        logging.info("Training model on historical data...")
-        
-        features_list = []
-        labels = []
-
-        # Look ahead period for labeling
-        label_lookahead = 12 # e.g., 12 hours on a 1h timeframe
-
-        for i in range(self.config.LOOKBACK_PERIODS, len(df) - label_lookahead):
-            historical_df = df.iloc[i - self.config.LOOKBACK_PERIODS : i]
-            indicators = self.ta.calculate_advanced_indicators(historical_df)
-            
-            if not indicators:
-                continue
-
-            features = self._prepare_features(indicators)
-            if features.empty:
-                continue
-
-            # Generate label: 1 if price increased by 1% in the future, 0 otherwise
-            future_price = df['close'].iloc[i + label_lookahead]
-            current_price = indicators['current_price']
-            price_increase_threshold = 0.01
-
-            label = 1 if (future_price - current_price) / current_price > price_increase_threshold else 0
-            
-            features_list.append(features)
-            labels.append(label)
-
-        if not features_list:
-            logging.warning("Could not generate any features for model training.")
-            return
-
-        all_features = pd.concat(features_list, ignore_index=True)
-        all_labels = pd.Series(labels)
-
-        self.model.train(all_features, all_labels)
-        self.model.is_trained = True
-        logging.info("Model training complete.")
+    
     
     def _calculate_signal_components(self, indicators: Dict) -> Dict:
         """Calculate individual signal components"""
