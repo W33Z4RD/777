@@ -1,4 +1,4 @@
-# 777PROJECT -  Crypto Trading Bot
+# 777 -  Crypto Trading Bot
 
 ## Project Overview
 The 777PROJECT is an advanced, modular, and highly configurable cryptocurrency trading bot. It leverages machine learning, comprehensive technical analysis, and multi-timeframe strategies to identify trading opportunities. The bot is capable of running in live trading mode with Coinbase, performing in-depth backtesting, and sending real-time notifications via Telegram.
